@@ -206,11 +206,11 @@ class DepthFirstSearchPlanner:
 
 def generate_random_position():
     while True:
-        x = random.uniform(-40, 40)
-        y = random.uniform(-40, 40)
+        x = random.uniform(10, 90)
+        y = random.uniform(10, 90)
 
         # Check if the point is outside the obstacle
-        if not (0 <= x <= 20 and -20 <= y <= 20):
+        if not (55 <= x <= 85 and 15 <= y <= 65):
             return (x, y)
 
 
@@ -225,6 +225,8 @@ def generate_robot_info(num_robots):
     return robot_info
 
 def main():
+    colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k']  # Add more colors if you have more than 7 robots
+
     print(__file__ + " start!!")
 
     # start and goal position
@@ -236,32 +238,33 @@ def main():
 
     # set obstacle positions
     ox, oy = [], []
-    for i in range(-50, 51):
+    for i in range(0, 101):
         ox.append(i)
-        oy.append(-50.0)
-    for i in range(-50, 51):
-        ox.append(50.0)
+        oy.append(0.0)
+    for i in range(0, 101):
+        ox.append(100.0)
         oy.append(i)
-    for i in range(-50, 51):
+    for i in range(0, 101):
         ox.append(i)
-        oy.append(50.0)
-    for i in range(-50, 51):
-        ox.append(-50.0)
-        oy.append(i)
-        
-    #Obstacle    
-    for i in range(0, 21):
-        ox.append(i)
-        oy.append(-20.0)
-    for i in range(-20, 21):
-        ox.append(20.0)
-        oy.append(i)
-    for i in range(0, 21):
-        ox.append(i)
-        oy.append(20.0)
-    for i in range(-20, 21):
+        oy.append(100.0)
+    for i in range(0, 101):
         ox.append(0.0)
         oy.append(i)
+        
+    # #Obstacle    
+    for i in range(60, 81):
+        ox.append(i)
+        oy.append(60.0)
+    for i in range(20, 61):
+        ox.append(80.0)
+        oy.append(i)
+    for i in range(20, 61):
+        ox.append(60)
+        oy.append(i)
+    for i in range(60, 81):
+        ox.append(i)
+        oy.append(20)
+    
 
     if show_animation:  # pragma: no cover
         plt.plot(ox, oy, ".k")
@@ -282,15 +285,26 @@ def main():
         goal_x, goal_y = robot["goal"]
         
         rx, ry = dfs.planning(start_x, start_y, goal_x, goal_y, i+1)
-    
-    
-    # print(rx)
-    # print(ry)
+        
+        
+        path_pairs = list(zip(rx, ry))[::-1]
+        initial_plans.append({'path': path_pairs, 'robot_id': i+1})
 
     if show_animation:  # pragma: no cover
         plt.plot(ox, oy, ".k")
-        for i, (rx, ry) in enumerate(initial_plans):
-            plt.plot(rx, ry, label=f"Robot {i + 1} Path")
+        for plan in initial_plans:
+            robot_id = plan['robot_id']
+            path_pairs = plan['path']
+            color = colors[robot_id % len(colors)]
+            
+            # Unzip the path pairs for plotting
+            rx, ry = zip(*path_pairs)
+            
+            plt.plot(rx, ry, color=color, linewidth=2, label=f"Robot {robot_id} Path")
+            
+            # Print path pairs
+            print(f"Robot {robot_id} path: {path_pairs}\n")
+            
         plt.legend()
         plt.pause(0.01)
         plt.show()
