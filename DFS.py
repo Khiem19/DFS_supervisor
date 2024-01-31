@@ -1,10 +1,10 @@
 import math
-import time
 import matplotlib.pyplot as plt
 import random
-import tracemalloc
 
 show_animation = True
+
+
 
 
 class DepthFirstSearchPlanner:
@@ -41,7 +41,7 @@ class DepthFirstSearchPlanner:
         rangeY = self.calc_grid_position(node1.y,self.miny) - self.calc_grid_position(node2.y,self.miny)
         return math.sqrt(rangeX*rangeX + rangeY*rangeY)
         
-    def planning(self, sx, sy, gx, gy):
+    def planning(self, sx, sy, gx, gy, robot_number):
         """
         Depth First search
 
@@ -63,7 +63,7 @@ class DepthFirstSearchPlanner:
 
         open_set, closed_set = dict(), dict()
         open_set[self.calc_grid_index(nstart)] = nstart
-        
+
         while True:
             if len(open_set) == 0:
                 print("Open set is empty..")
@@ -84,8 +84,7 @@ class DepthFirstSearchPlanner:
                 plt.pause(0.01)
 
             if current.x == ngoal.x and current.y == ngoal.y:
-                print("Find goal")
-                print("///////////////\n")
+                print(f"Robot {robot_number}: Find goal")
                 ngoal.parent_index = current.parent_index
                 ngoal.cost = current.cost
                 break
@@ -128,6 +127,7 @@ class DepthFirstSearchPlanner:
             n = n.parent
 
         return rx, ry
+
 
     def calc_grid_position(self, index, minp):
         """
@@ -180,7 +180,6 @@ class DepthFirstSearchPlanner:
         self.ywidth = round((self.maxy - self.miny) / self.reso)
         print("x_width:", self.xwidth)
         print("y_width:", self.ywidth)
-        print("//////////////////////\n")
 
         # obstacle map generation
         self.obmap = [[False for _ in range(self.ywidth)]
@@ -206,14 +205,20 @@ class DepthFirstSearchPlanner:
         return motion
 
 def generate_random_position():
-    return (random.uniform(-40, 40), random.uniform(-40, 40))
+    while True:
+        x = random.uniform(-40, 40)
+        y = random.uniform(-40, 40)
+
+        # Check if the point is outside the obstacle
+        if not (0 <= x <= 20 and -20 <= y <= 20):
+            return (x, y)
+
 
 def generate_robot_info(num_robots):
     robot_info = []
     for _ in range(num_robots):
         robot = {
             "start": generate_random_position(),
-            "job": generate_random_position(),
             "goal": generate_random_position()
         }
         robot_info.append(robot)
@@ -222,12 +227,14 @@ def generate_robot_info(num_robots):
 def main():
     print(__file__ + " start!!")
 
-    num_robots = 3
+    # start and goal position
+    num_robots = 10
     robot_info = generate_robot_info(num_robots)
-
+    
     grid_size = 1.0  # [m]
     robot_radius = 1.0  # [m]
 
+    # set obstacle positions
     ox, oy = [], []
     for i in range(-50, 51):
         ox.append(i)
@@ -241,59 +248,45 @@ def main():
     for i in range(-50, 51):
         ox.append(-50.0)
         oy.append(i)
-
-    # for i in range(10, 40):
-    #     ox.append(30.0)
-    #     oy.append(i)    
+        
+    #Obstacle    
+    for i in range(0, 21):
+        ox.append(i)
+        oy.append(-20.0)
+    for i in range(-20, 21):
+        ox.append(20.0)
+        oy.append(i)
+    for i in range(0, 21):
+        ox.append(i)
+        oy.append(20.0)
+    for i in range(-20, 21):
+        ox.append(0.0)
+        oy.append(i)
 
     if show_animation:  # pragma: no cover
         plt.plot(ox, oy, ".k")
         for i, robot in enumerate(robot_info):
             start_x, start_y = robot["start"]
-            job_x, job_y = robot["job"]
             goal_x, goal_y = robot["goal"]
             plt.plot(start_x, start_y, "og", label=f"Robot {i + 1} Start")
-            plt.plot(job_x, job_y, "xr", label=f"Robot {i + 1} Job")
             plt.plot(goal_x, goal_y, "xb", label=f"Robot {i + 1} Goal")
         plt.grid(True)
         plt.axis("equal")
 
-    # Initialize a single planner for all robots
-    common_planner = DepthFirstSearchPlanner(ox, oy, grid_size, robot_radius)
+    dfs = DepthFirstSearchPlanner(ox, oy, grid_size, robot_radius)
     initial_plans = []
-
+    
+    # rx, ry = dfs.planning(sx, sy, gx, gy)
     for i, robot in enumerate(robot_info):
-        # loop_start_time = time.time()
         start_x, start_y = robot["start"]
-        job_x, job_y = robot["job"]
         goal_x, goal_y = robot["goal"]
         
-        # Plan path from start to job
-        rx1, ry1 = common_planner.planning(start_x, start_y, job_x, job_y)
-        rx1.reverse()
-        ry1.reverse()
-        # Plan path from job to goal
-        rx2, ry2 = common_planner.planning(job_x, job_y, goal_x, goal_y)
-        rx2.reverse()
-        ry2.reverse()
-        # Combine the paths (excluding the duplicate job point)
-        rx = rx1 + rx2[1:]  # Exclude the first point of rx2 to avoid duplication
-        ry = ry1 + ry2[1:]  # Exclude the first point of ry2
+        rx, ry = dfs.planning(start_x, start_y, goal_x, goal_y, i+1)
+    
+    
+    # print(rx)
+    # print(ry)
 
-        # Update obstacles with crossing points from the current robot's path
-        for j in range(i):
-            path1_x, path1_y = initial_plans[j]
-            for k, (x1, y1) in enumerate(zip(rx, ry)):
-                for l, (x2, y2) in enumerate(zip(path1_x, path1_y)):
-                    if x1 == x2 and y1 == y2:
-                        # Add original and surrounding points to obstacles
-                        ox.extend([x1, x1 + grid_size, x1 - grid_size, x1, x1])
-                        oy.extend([y1, y1, y1, y1 + grid_size, y1 - grid_size])
-                        # Update the common obstacle map in the planner
-                        common_planner.calc_obstacle_map(ox, oy)
-        initial_plans.append((rx, ry))
-
-    # Use plt.show() to keep the window open
     if show_animation:  # pragma: no cover
         plt.plot(ox, oy, ".k")
         for i, (rx, ry) in enumerate(initial_plans):
