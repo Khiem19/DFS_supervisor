@@ -258,7 +258,7 @@ def main():
     print(__file__ + " start!!")
 
     # start and goal position
-    num_robots = 5
+    num_robots = 3
     robot_info = generate_robot_info(num_robots)
     
     grid_size = 1.0  # [m]
@@ -357,5 +357,5 @@ def main():
         plt.show()
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
