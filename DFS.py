@@ -224,13 +224,41 @@ def generate_robot_info(num_robots):
         robot_info.append(robot)
     return robot_info
 
+def find_shared_and_border_coordinates(plans):
+    shared_coords = []
+    border_coords = []
+
+    # Compare each robot's path with every other robot's path
+    for i in range(len(plans)):
+        for j in range(i + 1, len(plans)):
+            path1 = plans[i]['path']
+            path2 = plans[j]['path']
+            
+            # Find shared coordinates
+            shared = set(path1).intersection(set(path2))
+            
+            # For each shared coordinate, find and store the border coordinates
+            for coord in shared:
+                if coord not in shared_coords:
+                    shared_coords.append(coord)
+                    # Find the index of the shared coordinate in each path
+                    index1 = path1.index(coord)
+                    index2 = path2.index(coord)
+                    # Ensure the index is not the first element
+                    if index1 > 0 and path1[index1 - 1] not in border_coords:
+                        border_coords.append(path1[index1 - 1])
+                    if index2 > 0 and path2[index2 - 1] not in border_coords:
+                        border_coords.append(path2[index2 - 1])
+
+    return shared_coords, border_coords
+
 def main():
     colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k']  # Add more colors if you have more than 7 robots
 
     print(__file__ + " start!!")
 
     # start and goal position
-    num_robots = 10
+    num_robots = 5
     robot_info = generate_robot_info(num_robots)
     
     grid_size = 1.0  # [m]
@@ -290,8 +318,15 @@ def main():
         path_pairs = list(zip(rx, ry))[::-1]
         initial_plans.append({'path': path_pairs, 'robot_id': i+1})
 
+    # After generating all paths, find shared and border coordinates
+    shared_coordinates, border_coordinates = find_shared_and_border_coordinates(initial_plans)
+    print("Shared Coordinates:", shared_coordinates)
+    print("\n")
+    print("Border Coordinates:", border_coordinates)
+    print("\n")
+    
     if show_animation:  # pragma: no cover
-        plt.plot(ox, oy, ".k")
+        plt.plot(ox, oy, ".k", label="Obstacles")
         for plan in initial_plans:
             robot_id = plan['robot_id']
             path_pairs = plan['path']
@@ -301,11 +336,23 @@ def main():
             rx, ry = zip(*path_pairs)
             
             plt.plot(rx, ry, color=color, linewidth=2, label=f"Robot {robot_id} Path")
-            
-            # Print path pairs
-            print(f"Robot {robot_id} path: {path_pairs}\n")
-            
+        
+        # Plot shared coordinates
+        if shared_coordinates:
+            sx, sy = zip(*shared_coordinates)
+            plt.plot(sx, sy, "r*", markersize=10, label="Shared Coordinates")
+        
+        # Plot border coordinates
+        if border_coordinates:
+            bx, by = zip(*border_coordinates)
+            plt.plot(bx, by, "bo", markersize=5, label="Border Coordinates")
+        
         plt.legend()
+        plt.grid(True)
+        plt.axis("equal")
+        plt.xlabel("X position")
+        plt.ylabel("Y position")
+        plt.title("Robot Paths with Shared and Border Coordinates")
         plt.pause(0.01)
         plt.show()
 
