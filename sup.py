@@ -6,18 +6,22 @@ import time
 
 import DFS as planner
 
-wScreen = 1000
-hScreen = 1000
+import matplotlib
+matplotlib.use('Agg')  # Use Agg backend to suppress figure display
+import matplotlib.pyplot as plt
+
+
+wScreen = 850
+hScreen = 850
 
 numGridX = 100
 numGridY = 100
 ofset = 0
 
 sector = wScreen / numGridX
-radius = sector * 0.8
+radius = sector * 0.75
 movePerFrame = sector
 error = 2
-
 
 class State(Enum):
     STOP = 1
@@ -32,61 +36,21 @@ class Robot(object):
     def __init__(self, path_info, radius, color):
         self.radius = radius
         self.color = color
-        self.path = path_info['path']  # Extract the path list from the path_info dictionary
-        self.index = 0 # Index always represents the point that the robots want to reach
-        self.state = State.ASK
-
-        (sNodex, sNodey) = self.path[0]  # Now this accesses the first coordinate pair in the path list
-        self.locX = sNodex * sector  # Real location of the robot on the map
-        self.locY = sNodey * sector
+        self.path = path_info['path']  # Path is a list of tuples [(x1, y1), (x2, y2), ...]
+        self.index = 0  # Start at the first point in the path
+        self.locX, self.locY = self.path[0]  # Convert the first path coordinate to screen position
+        self.locX *= sector
+        self.locY *= hScreen - self.path[0][1] * sector
 
 
-    def orientation(self):
-        if self.index < len(self.path) - 1:
-            (gx, gy) = self.path[self.index + 1]
-            (cx, cy) = self.path[self.index]
-            distance = math.sqrt((gx - cx) ** 2 + (gy - cy) ** 2)
-            vx = ((gx - cx) * movePerFrame) / distance
-            vy = ((gy - cy) * movePerFrame) / distance
-            return (vx, vy)
-        else:
-            return (0, 0)
-    
     def move(self):
-        if self.state == State.MOVE:
-            (vx, vy) = self.orientation()
-            if distance(self.locX, self.locY, self.locX + vx, self.locY + vy) < error:
-                self.state = State.ASK
-
-            (gNodex, gNodey) = self.path[-1]
-            if distance(self.locX, self.locY, gNodex * sector, gNodey * sector) < error:
-                self.state = State.STOP
-            else:
-                self.locX += vx
-                self.locY += vy
-
-    def getState(self):
-        return self.state
-    
-    def requestState(self):
         if self.index < len(self.path) - 1:
-            return self.path[self.index + 1]
-        return self.path[self.index]
-    
+            self.index += 1  # Move to the next point in the path
+            next_point = self.path[self.index]
+            self.locX, self.locY = next_point[0] * sector, next_point[1] * sector
+
     def draw(self, screen):
         pygame.draw.circle(screen, self.color, (int(self.locX), int(self.locY)), int(self.radius))
-
-    def acceptMove(self):
-        (gNodex, gNodey) = self.path[-1]
-        if distance(self.locX, self.locY, gNodex * sector, gNodey * sector) < error:
-            self.state = State.STOP
-        else:
-            self.index += 1
-            self.state = State.MOVE
-
-    def currentNode(self):
-        return self.path[self.index]
-
 
 class Supervisor(object):
     def __init__(self,listOfRobots):
@@ -133,7 +97,7 @@ def main():
     run = True
     clock = pygame.time.Clock()
     
-    num_robots = 2
+    num_robots = 5
     robotsTask = planner.generate_robot_info(num_robots)
 
     #obstacle
@@ -167,7 +131,7 @@ def main():
 
     robots = [Robot(path, radius, generate_random_rgb()) for path in generatePaths(robotsTask, ox, oy)]
 
-    supervisor = Supervisor(robots)
+    # supervisor = Supervisor(robots)
 
     screen = pygame.display.set_mode((wScreen, hScreen))
 
@@ -180,7 +144,7 @@ def main():
         for x, y in zip(ox, oy):
             pygame.draw.rect(screen, (0, 0, 0), [x * sector, y * sector, sector, sector], 0)
 
-        supervisor.checkAskingAction()
+        # supervisor.checkAskingAction()
 
         # Move and draw each robot
         for robot in robots:

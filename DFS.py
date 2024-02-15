@@ -258,7 +258,7 @@ def main():
     print(__file__ + " start!!")
 
     # start and goal position
-    num_robots = 3
+    num_robots = 2
     robot_info = generate_robot_info(num_robots)
     
     grid_size = 1.0  # [m]
@@ -317,6 +317,8 @@ def main():
         
         path_pairs = list(zip(rx, ry))[::-1]
         initial_plans.append({'path': path_pairs, 'robot_id': i+1})
+        
+        print(f"Robot {i+1} Path: {path_pairs}")
 
     # After generating all paths, find shared and border coordinates
     shared_coordinates, border_coordinates = find_shared_and_border_coordinates(initial_plans)
@@ -357,5 +359,5 @@ def main():
         plt.show()
 
 
-# if __name__ == '__main__':
-#     main()
+if __name__ == '__main__':
+    main()
